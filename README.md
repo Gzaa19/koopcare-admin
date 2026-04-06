@@ -80,7 +80,7 @@ Buka terminal dan jalankan perintah berikut:
 ```bash
 git clone https://github.com/sayafauzi/koopcare-admin.git
 cd koopcare-admin
-
+```
 
 ## 🤝 Panduan Kolaborasi Git (Team Workflow)
 
@@ -90,11 +90,11 @@ Agar tidak terjadi error `non-fast-forward` atau konflik yang merusak kode, selu
 Sebelum mulai mengetik kode apa pun setiap hari, pastikan lokal Anda sinkron dengan server:
 ```bash
 git pull origin main
-
-*Lakukan ini secara berkala, terutama setelah rekan tim Anda mengabarkan mereka baru saja melakukan push.*
+```
+*Lakukan ini secara berkala, terutama setelah rekan tim mengabarkan mereka baru saja melakukan push.*
 
 ### 2. Prosedur Push yang Aman
-Jika Anda ingin mengirim perubahan, ikuti urutan ini:
+Jika Kita ingin mengirim perubahan, ikuti urutan ini:
 1. **Simpan Pekerjaan:** `git add .` dan `git commit -m "feat: deskripsi singkat"`
 2. **Tarik Perubahan Terbaru:** `git pull origin main`
 3. **Selesaikan Konflik (Jika ada):** Jika muncul tulisan *Conflict*, buka file tersebut, pilih kode yang benar, lalu `git add .` dan `git commit`.
@@ -129,7 +129,7 @@ git pull origin main --allow-unrelated-histories
 
 ## 🚫 Yang HARUS Dihindari (Best Practices)
 
-1. **Dilarang keras menggunakan `--force`:** Jangan pernah menjalankan `git push --force` di branch utama (`main`). Ini akan **menghapus** hasil kerja rekan tim Anda di GitHub secara permanen.
+1. **Dilarang keras menggunakan `--force`:** Jangan pernah menjalankan `git push --force` di branch utama (`main`). Ini akan **menghapus** hasil kerja rekan tim di GitHub secara permanen.
    
 2. **Jangan Mengedit File Langsung di Web GitHub:** Hindari menekan tombol "Edit" di browser GitHub. Ini adalah penyebab utama error `non-fast-forward`. Selalu edit di VS Code/Laptop Anda.
 
@@ -144,25 +144,11 @@ git pull origin main --allow-unrelated-histories
 ---
 
 ## 🐳 Tips Docker untuk Tim
-Jika rekan tim Anda menambahkan library baru (misal: menginstall `lucide-react`), maka saat Anda melakukan `pull`, Anda harus menjalankan:
+Jika rekan tim menambahkan library baru (misal: menginstall `lucide-react`), maka saat melakukan `pull`, harus menjalankan:
 ```bash
 docker-compose up --build
 ```
-*Ini untuk memastikan container Docker Anda menginstall library baru tersebut secara otomatis.*
+*Ini untuk memastikan container Docker menginstall library baru tersebut secara otomatis.*
 
 ---
 
-## Cara Update README Ini
-
-Jika Anda perlu memperbarui panduan ini di `README.md`, ikuti langkah berikut:
-
-1. Buka file `README.md` di VS Code.
-2. Tempelkan pembaruan yang diinginkan di bagian yang sesuai.
-3. Simpan, lalu jalankan perintah:
-   ```bash
-   git add README.md
-   git commit -m "docs: update git collaboration guide in README"
-   git pull origin main
-   git push origin main
-   ```
-```

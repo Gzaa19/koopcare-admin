@@ -78,5 +78,5 @@ Sebelum menjalankan proyek ini, pastikan mesin Anda telah terpasang:
 ### 1. Clone Repositori
 Buka terminal dan jalankan perintah berikut:
 ```bash
-git clone [https://github.com/username-anda/koopcare-admin.git](https://github.com/username-anda/koopcare-admin.git)
+git clone [https://github.com/sayafauzi/koopcare-admin.git](https://github.com/sayafauzi/koopcare-admin.git)
 cd koopcare-admin

@@ -80,3 +80,89 @@ Buka terminal dan jalankan perintah berikut:
 ```bash
 git clone https://github.com/sayafauzi/koopcare-admin.git
 cd koopcare-admin
+
+
+## 🤝 Panduan Kolaborasi Git (Team Workflow)
+
+Agar tidak terjadi error `non-fast-forward` atau konflik yang merusak kode, seluruh anggota tim **WAJIB** mengikuti alur kerja berikut:
+
+### 1. Alur Kerja Harian (The Golden Rule)
+Sebelum mulai mengetik kode apa pun setiap hari, pastikan lokal Anda sinkron dengan server:
+```bash
+git pull origin main
+
+*Lakukan ini secara berkala, terutama setelah rekan tim Anda mengabarkan mereka baru saja melakukan push.*
+
+### 2. Prosedur Push yang Aman
+Jika Anda ingin mengirim perubahan, ikuti urutan ini:
+1. **Simpan Pekerjaan:** `git add .` dan `git commit -m "feat: deskripsi singkat"`
+2. **Tarik Perubahan Terbaru:** `git pull origin main`
+3. **Selesaikan Konflik (Jika ada):** Jika muncul tulisan *Conflict*, buka file tersebut, pilih kode yang benar, lalu `git add .` dan `git commit`.
+4. **Kirim:** `git push origin main`
+
+---
+
+## 🛠 Penanganan Error Umum
+
+### A. Error: `non-fast-forward` (Rejected)
+**Penyebab:** Ada kode baru di GitHub yang belum Anda tarik ke laptop.
+**Solusi Rapi:**
+```bash
+# 1. Atur strategi merge
+git config pull.rebase false
+
+# 2. Tarik dan gabungkan otomatis
+git pull origin main
+
+# 3. Jika aman, langsung push
+git push origin main
+```
+
+### B. Error: `divergent branches`
+**Penyebab:** Sejarah Git di lokal dan GitHub berbeda arah.
+**Solusi:**
+```bash
+git pull origin main --allow-unrelated-histories
+```
+
+---
+
+## 🚫 Yang HARUS Dihindari (Best Practices)
+
+1. **Dilarang keras menggunakan `--force`:** Jangan pernah menjalankan `git push --force` di branch utama (`main`). Ini akan **menghapus** hasil kerja rekan tim Anda di GitHub secara permanen.
+   
+2. **Jangan Mengedit File Langsung di Web GitHub:** Hindari menekan tombol "Edit" di browser GitHub. Ini adalah penyebab utama error `non-fast-forward`. Selalu edit di VS Code/Laptop Anda.
+
+3. **Jangan Commit Folder `node_modules`:** Pastikan folder ini ada di `.gitignore`. Men-commit ribuan file library akan membuat proses `pull/push` menjadi sangat lambat dan berat.
+
+4. **Pesan Commit yang Jelas:** Gunakan awalan (prefix) agar rekan tim mudah membaca riwayat:
+   - `feat:` untuk fitur baru.
+   - `fix:` untuk perbaikan bug.
+   - `style:` untuk perubahan tampilan/CSS.
+   - `docs:` untuk perubahan README atau dokumentasi.
+
+---
+
+## 🐳 Tips Docker untuk Tim
+Jika rekan tim Anda menambahkan library baru (misal: menginstall `lucide-react`), maka saat Anda melakukan `pull`, Anda harus menjalankan:
+```bash
+docker-compose up --build
+```
+*Ini untuk memastikan container Docker Anda menginstall library baru tersebut secara otomatis.*
+
+---
+
+## Cara Update README Ini
+
+Jika Anda perlu memperbarui panduan ini di `README.md`, ikuti langkah berikut:
+
+1. Buka file `README.md` di VS Code.
+2. Tempelkan pembaruan yang diinginkan di bagian yang sesuai.
+3. Simpan, lalu jalankan perintah:
+   ```bash
+   git add README.md
+   git commit -m "docs: update git collaboration guide in README"
+   git pull origin main
+   git push origin main
+   ```
+```

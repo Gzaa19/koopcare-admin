@@ -1,0 +1,8 @@
+# Pastikan Anda di root koopcare-admin
+echo "node_modules/
+dist/
+.env
+.DS_Store
+db_data/
+backend/node_modules/
+frontend/node_modules/" > .gitignore

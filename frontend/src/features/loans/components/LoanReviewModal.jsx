@@ -5,8 +5,8 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Spinner from '../../../components/ui/Spinner';
 import { fetchLoanDetail } from '../../../services/loanService';
-import { formatCurrency } from '../../../utils/formatters';
-import { UserIcon, BriefcaseIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { formatCurrency, formatPhoneToWaLink } from '../../../utils/formatters';
+import { UserIcon, BriefcaseIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 const LoanReviewModal = ({ isOpen, onClose, loanId, onApprove, onReject }) => {
   const [loan, setLoan] = useState(null);
@@ -60,14 +60,31 @@ const LoanReviewModal = ({ isOpen, onClose, loanId, onApprove, onReject }) => {
         <div className="space-y-6">
           {/* Informasi Anggota */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <InfoItem icon={UserIcon} label="Anggota" value={loan.member_name} />
+            <div className="flex items-start gap-2">
+              <UserIcon className="h-4 w-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="text-xs text-neutral-500 uppercase tracking-wide">Anggota</div>
+                <div className="font-medium text-neutral-800 break-words flex items-center gap-2">
+                  {loan.member_name}
+                  <a
+                    href={`https://wa.me/${formatPhoneToWaLink(loan.phone)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 hover:text-green-800"
+                    title="Chat via WhatsApp"
+                  >
+                    <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
             <InfoItem icon={BriefcaseIcon} label="Pekerjaan" value={loan.occupation || '-'} />
             <InfoItem icon={CalendarIcon} label="Lama Anggota" value={loan.tenure_months ? `${loan.tenure_months} bulan` : '-'} />
             <InfoItem icon={CurrencyDollarIcon} label="Jumlah Pinjaman" value={formatCurrency(loan.amount)} />
           </div>
 
           {/* AI Scoring */}
-          <div className={`p-3 rounded-lg border ${isEligible ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          {/* <div className={`p-3 rounded-lg border ${isEligible ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center gap-2">
               {isEligible ? <CheckCircleIcon className="h-5 w-5 text-green-600" /> : <XCircleIcon className="h-5 w-5 text-red-600" />}
               <span className={`font-semibold ${isEligible ? 'text-green-700' : 'text-red-700'}`}>
@@ -76,7 +93,27 @@ const LoanReviewModal = ({ isOpen, onClose, loanId, onApprove, onReject }) => {
               <span className="text-xs text-neutral-500">(Skor: {loan.ai_score}%)</span>
             </div>
             <p className="text-sm text-neutral-600 mt-1">Maksimal disetujui: <span className="font-medium">{formatCurrency(loan.max_approved_amount || loan.amount * 0.8)}</span></p>
-          </div>
+          </div> */}
+
+          {/* Rekomendasi AI */}
+          {loan.ai_recommendation && (
+              <div className={`p-3 rounded-lg border ${loan.ai_recommendation === 'LAYAK' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="flex items-center gap-2">
+                      {loan.ai_recommendation === 'LAYAK' ? (
+                          <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                      ) : (
+                          <XCircleIcon className="h-5 w-5 text-red-600" />
+                      )}
+                      <span className="font-semibold">Rekomendasi AI: {loan.ai_recommendation}</span>
+                      {loan.prob_default && (
+                          <span className="text-xs text-neutral-500">
+                              (Probabilitas gagal bayar: {(loan.prob_default * 100).toFixed(1)}%)
+                          </span>
+                      )}
+                  </div>
+                  <p className="text-xs text-neutral-600 mt-1">*Keputusan akhir tetap di tangan admin.</p>
+              </div>
+          )}
 
           {/* Aksi */}
           {loan.status === 'PENDING' ? (

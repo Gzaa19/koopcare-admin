@@ -82,7 +82,7 @@ export const createMember = async (memberData) => {
   const {
     fullName, nik, phone, email, pin, status, role,
     monthly_income, tenure_months, existing_loan_balance, has_collateral,
-    code_gender, birth_date, education, family_status, occupation,
+    code_gender, birth_date, education, family_status, income_type, occupation,
     own_car, own_realty, children_count, family_members,
     employed_days, last_phone_change_days
   } = memberData;
@@ -91,15 +91,15 @@ export const createMember = async (memberData) => {
     `INSERT INTO members (
       full_name, nik, phone, email, pin, status, role,
       monthly_income, tenure_months, existing_loan_balance, has_collateral,
-      code_gender, birth_date, education, family_status, occupation,
+      code_gender, birth_date, education, family_status, income_type, occupation,
       own_car, own_realty, children_count, family_members,
       employed_days, last_phone_change_days
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       fullName, nik, phone, email, pin, status, role || 'member',
       monthly_income || 0, tenure_months || 0, existing_loan_balance || 0, has_collateral || false,
       code_gender || 'M', birth_date || null, education || 'Secondary / secondary special',
-      family_status || 'Single', occupation || 'Laborers',
+      family_status || 'Single', income_type || 'Working', occupation || 'Laborers',
       own_car || false, own_realty || false, children_count || 0, family_members || 1,
       employed_days || -1825, last_phone_change_days || -180
     ]

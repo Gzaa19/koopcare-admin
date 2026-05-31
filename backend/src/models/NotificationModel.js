@@ -26,3 +26,11 @@ export const markAsRead = async (id, memberId) => {
 export const markAllAsRead = async (memberId) => {
     await pool.query('UPDATE notifications SET is_read = TRUE WHERE member_id = ?', [memberId]);
 };
+
+export const getUnreadCount = async (memberId) => {
+    const [rows] = await pool.query(
+        'SELECT COUNT(*) as count FROM notifications WHERE member_id = ? AND is_read = FALSE',
+        [memberId]
+    );
+    return rows[0].count;
+};

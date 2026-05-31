@@ -14,14 +14,8 @@ function buildPayload(member, loan) {
     }
     const amt_annuity = loan.amount / loan.tenor;
     return {
-        tenure_months: member.tenure_months || 0,
-        monthly_income: member.monthly_income || 0,
-        loan_amount: loan.amount,
-        loan_purpose: loan.purpose || 'others',
-        existing_loan_balance: member.existing_loan_balance || 0,
-        has_collateral: member.has_collateral ? 1 : 0,
         code_gender: member.code_gender || 'M',
-        name_income_type: 'Working',
+        name_income_type: member.income_type || 'Working',
         name_education_type: member.education || 'Secondary / secondary special',
         name_family_status: member.family_status || 'Married',
         occupation_type: member.occupation || 'Laborers',
@@ -36,6 +30,9 @@ function buildPayload(member, loan) {
         days_birth: days_birth,
         days_employed: member.employed_days || -1825,
         days_last_phone_change: member.last_phone_change_days || -180,
+        ext_source_1: 0.5,
+        ext_source_2: 0.5,
+        ext_source_3: 0.5
     };
 }
 
@@ -57,7 +54,16 @@ export async function scoreLoanApplication(memberId, loanData) {
 
         if (prob_default === undefined) throw new Error('ML response missing prob_default');
 
-        const ai_score = Math.round((1 - prob_default) * 100);
+        // Memetakan prob_default ke ai_score agar minimal skor untuk LAYAK adalah 75
+        let ai_score;
+        if (prob_default < 0.666) {
+            // prob_default: 0.0 -> 0.666 dipetakan ke skor: 100 -> 75
+            ai_score = Math.round(100 - (prob_default / 0.666) * 25);
+        } else {
+            // prob_default: 0.666 -> 1.0 dipetakan ke skor: 74 -> 0
+            ai_score = Math.round(74 - ((prob_default - 0.666) / 0.334) * 74);
+        }
+        
         return { recommendation, prob_default, ai_score, risk_level };
     } catch (error) {
         console.error('[ML] Error calling ML API:', error.message);

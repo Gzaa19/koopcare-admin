@@ -216,6 +216,7 @@ export async function runMigrations() {
     await addCol(connection, 'members', 'birth_date', 'DATE NULL');
     await addCol(connection, 'members', 'education', `VARCHAR(50) DEFAULT 'Secondary / secondary special'`);
     await addCol(connection, 'members', 'family_status', `VARCHAR(30) DEFAULT 'Married'`);
+    await addCol(connection, 'members', 'income_type', `VARCHAR(50) DEFAULT 'Working'`);
     await addCol(connection, 'members', 'occupation', `VARCHAR(50) DEFAULT 'Laborers'`);
     await addCol(connection, 'members', 'own_car', 'BOOLEAN DEFAULT FALSE');
     await addCol(connection, 'members', 'own_realty', 'BOOLEAN DEFAULT TRUE');

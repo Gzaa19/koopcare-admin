@@ -153,12 +153,13 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
     try {
-        const { monthly_income, birth_date, education, occupation, own_car, own_realty, children_count, family_members, ...others } = req.body;
+        const { monthly_income, birth_date, education, occupation, income_type, own_car, own_realty, children_count, family_members, ...others } = req.body;
         await MemberModel.update(req.user.id, {
             monthly_income,
             birth_date,
             education,
             occupation,
+            income_type,
             own_car,
             own_realty,
             children_count,
@@ -260,6 +261,8 @@ export const applyLoan = async (req, res, next) => {
                     risk_level,
                     max_approved_amount,
                 });
+                // Tambahkan notifikasi AI selesai
+                await notificationModel.create(req.user.id, 'Analisis AI Selesai', `Pengajuan pinjaman Anda telah dianalisis. Skor kelayakan: ${ai_score} (${recommendation})`);
                 console.log(`[AI] Loan ${loanId} updated with ML result.`);
             })
             .catch(err => console.error('[AI] Background error:', err));
@@ -288,6 +291,13 @@ export const getNotifications = async (req, res, next) => {
     try {
         const notifications = await notificationModel.findByMemberId(req.user.id);
         res.json({ success: true, data: notifications });
+    } catch (err) { next(err); }
+};
+
+export const getUnreadNotificationCount = async (req, res, next) => {
+    try {
+        const count = await notificationModel.getUnreadCount(req.user.id);
+        res.json({ success: true, count });
     } catch (err) { next(err); }
 };
 

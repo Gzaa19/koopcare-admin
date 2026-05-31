@@ -33,6 +33,7 @@ router.post('/loans/apply', mobileController.applyLoan);
 router.get('/loans/:id', mobileController.getLoanDetailMember);
 router.get('/transactions', mobileController.getMemberTransactions);
 router.get('/notifications', mobileController.getNotifications);
+router.get('/notifications/unread-count', mobileController.getUnreadNotificationCount);
 router.patch('/notifications/:id/read', mobileController.markNotificationRead);
 router.patch('/notifications/read-all', mobileController.markAllNotificationsRead);
 

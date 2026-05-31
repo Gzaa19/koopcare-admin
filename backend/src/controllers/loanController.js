@@ -93,6 +93,7 @@ export const createLoan = async (req, res, next) => {
             risk_level,
             max_approved_amount,
         });
+        await notificationModel.create(member_id, 'Analisis AI Selesai', `Pengajuan pinjaman telah dianalisis. Skor kelayakan: ${ai_score} (${recommendation})`);
         console.log(`[AI] Loan ${loanId} updated with ML result.`);
         
         res.status(201).json({ success: true, loanId });

@@ -171,10 +171,17 @@ export const updateProfile = async (req, res, next) => {
 
 export const submitKyc = async (req, res, next) => {
     try {
-        const { ktp_photo_url, selfie_photo_url } = req.body;
-        if (!ktp_photo_url || !selfie_photo_url) {
+        // File diterima via multipart/form-data, sudah diupload ke Cloudinary oleh multer
+        const ktpFile = req.files?.ktp_photo?.[0];
+        const selfieFile = req.files?.selfie_photo?.[0];
+
+        if (!ktpFile || !selfieFile) {
             return res.status(400).json({ error: 'Foto KTP dan selfie wajib diisi' });
         }
+
+        // URL hasil upload Cloudinary
+        const ktp_photo_url = ktpFile.path;
+        const selfie_photo_url = selfieFile.path;
 
         // Ambil data member dari database
         const member = await MemberModel.findById(req.user.id);
@@ -188,7 +195,7 @@ export const submitKyc = async (req, res, next) => {
             return res.status(400).json({ error: 'Anda sudah memiliki pengajuan KYC yang sedang diproses' });
         }
 
-        // Simpan pengajuan KYC
+        // Simpan pengajuan KYC dengan URL dari Cloudinary
         const kycId = await KycModel.create({
             member_id: req.user.id,
             full_name: member.full_name,
@@ -196,10 +203,16 @@ export const submitKyc = async (req, res, next) => {
             phone: member.phone,
             status: 'PENDING',
             ktp_photo_url,
-            selfie_photo_url
+            selfie_photo_url,
         });
 
-        res.status(201).json({ success: true, message: 'Pengajuan KYC berhasil', kycId });
+        res.status(201).json({
+            success: true,
+            message: 'Pengajuan KYC berhasil',
+            kycId,
+            ktp_photo_url,
+            selfie_photo_url,
+        });
     } catch (err) {
         next(err);
     }

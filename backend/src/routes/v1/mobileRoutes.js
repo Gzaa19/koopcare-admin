@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mobileAuth from '../../middlewares/mobileAuth.js';
 import * as mobileController from '../../controllers/mobileController.js';
+import { uploadKyc } from '../../config/cloudinary.js';
 
 const router = Router();
 
@@ -15,7 +16,17 @@ router.post('/reset-pin', mobileController.mobileResetPin);
 router.use(mobileAuth);
 router.get('/profile', mobileController.getProfile);
 router.put('/profile', mobileController.updateProfile);
-router.post('/kyc/submit', mobileController.submitKyc);
+
+// KYC submit: multipart/form-data dengan field ktp_photo dan selfie_photo
+router.post(
+    '/kyc/submit',
+    uploadKyc.fields([
+        { name: 'ktp_photo', maxCount: 1 },
+        { name: 'selfie_photo', maxCount: 1 },
+    ]),
+    mobileController.submitKyc
+);
+
 router.get('/kyc/status', mobileController.getKycStatus);
 router.get('/loans', mobileController.getMemberLoans);
 router.post('/loans/apply', mobileController.applyLoan);

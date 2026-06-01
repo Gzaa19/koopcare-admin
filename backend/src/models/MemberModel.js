@@ -6,6 +6,9 @@ export const findAll = async (limit, offset, search = '', role = null) => {
   const params = [];
   const conditions = [];
 
+  // Hanya tampilkan admin atau anggota yang pengajuan KYC-nya sudah disetujui (APPROVED) atau ditolak (REJECTED)
+  conditions.push("(role = 'admin' OR id IN (SELECT member_id FROM kyc_submissions WHERE status IN ('APPROVED', 'REJECTED')))");
+
   if (search) {
     conditions.push('(full_name LIKE ? OR nik LIKE ? OR phone LIKE ?)');
     const like = `%${search}%`;

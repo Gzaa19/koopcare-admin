@@ -54,14 +54,22 @@ export async function scoreLoanApplication(memberId, loanData) {
 
         if (prob_default === undefined) throw new Error('ML response missing prob_default');
 
-        // Memetakan prob_default ke ai_score agar minimal skor untuk LAYAK adalah 75
+        // ── Skor 3 zona ──────────────────────────────────────────────────
+        // ✅ LAYAK            (prob_default < 0.666)  → skor 75 — 100
+        // ⚠️  DIPERTIMBANGKAN (0.666 ≤ prob < 0.866) → skor 25 — 74
+        // ❌ TIDAK LAYAK      (prob_default ≥ 0.866)  → skor  0 — 24
+        const prob_berhasil = 1 - prob_default;
         let ai_score;
+
         if (prob_default < 0.666) {
-            // prob_default: 0.0 -> 0.666 dipetakan ke skor: 100 -> 75
-            ai_score = Math.round(100 - (prob_default / 0.666) * 25);
+            // LAYAK: skor = 50 + (prob_berhasil * 50)
+            ai_score = Math.round(50 + prob_berhasil * 50);
+        } else if (prob_default < 0.866) {
+            // PERLU DIPERTIMBANGKAN: skor = 25 + (prob_berhasil * 25)
+            ai_score = Math.round(25 + prob_berhasil * 25);
         } else {
-            // prob_default: 0.666 -> 1.0 dipetakan ke skor: 74 -> 0
-            ai_score = Math.round(74 - ((prob_default - 0.666) / 0.334) * 74);
+            // TIDAK LAYAK: skor = prob_berhasil * 25
+            ai_score = Math.round(prob_berhasil * 25);
         }
         
         return { recommendation, prob_default, ai_score, risk_level };

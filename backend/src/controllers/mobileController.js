@@ -33,7 +33,7 @@ export const registerMember = async (req, res, next) => {
             phone,
             email: email || null,
             pin: hashedPin,
-            status: 'ACTIVE',
+            status: 'INACTIVE',
             role: 'member',
             monthly_income: monthly_income || 0,
             birth_date: birth_date || null,
@@ -239,6 +239,16 @@ export const getMemberLoans = async (req, res, next) => {
 export const applyLoan = async (req, res, next) => {
     try {
         const { amount, tenor, purpose, type } = req.body;
+        
+        // Cek status keaktifan anggota
+        const member = await MemberModel.findById(req.user.id);
+        if (!member) {
+            return res.status(404).json({ error: 'Anggota tidak ditemukan' });
+        }
+        if (member.status !== 'ACTIVE') {
+            return res.status(403).json({ error: 'Akun Anda belum aktif. Harap verifikasi KYC terlebih dahulu.' });
+        }
+
         const request_number = `LOAN${Date.now()}`;
         const loanId = await LoanModel.create({
             member_id: req.user.id,

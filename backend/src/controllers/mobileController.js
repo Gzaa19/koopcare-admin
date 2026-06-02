@@ -8,6 +8,7 @@ import * as notificationModel from '../models/NotificationModel.js';
 import { hashPin, verifyPin, generateRandomPin } from '../services/pinService.js';
 import { scoreLoanApplication } from '../services/loanMlScoringService.js';
 import jwt from 'jsonwebtoken';
+import { normalizePhone, normalizeIdentifier, validatePhone } from '../utils/validators.js';
 
 // Helper untuk OTP sederhana (simulasi, bisa diganti dengan WhatsApp)
 const otpStore = new Map();
@@ -23,6 +24,11 @@ export const registerMember = async (req, res, next) => {
         }
         if (!/^\d{16}$/.test(nik)) return res.status(400).json({ error: 'NIK harus 16 digit' });
         if (!/^\d{6}$/.test(pin)) return res.status(400).json({ error: 'PIN harus 6 digit' });
+        if (!validatePhone(phone)) {
+            return res.status(400).json({ error: 'Nomor telepon tidak valid (format yang didukung: 08xx, 628xx, atau +628xx)' });
+        }
+        
+        const normalizedPhone = normalizePhone(phone);
         const existing = await MemberModel.findByNIK(nik);
         if (existing) return res.status(400).json({ error: 'NIK sudah terdaftar' });
         
@@ -30,7 +36,7 @@ export const registerMember = async (req, res, next) => {
         const memberId = await MemberModel.createMember({
             fullName: full_name,
             nik,
-            phone,
+            phone: normalizedPhone,
             email: email || null,
             pin: hashedPin,
             status: 'INACTIVE',
@@ -47,7 +53,7 @@ export const registerMember = async (req, res, next) => {
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
-        res.status(201).json({ success: true, token, user: { id: memberId, name: full_name, phone, email } });
+        res.status(201).json({ success: true, token, user: { id: memberId, name: full_name, phone: normalizedPhone, email, status: 'INACTIVE' } });
     } catch (err) { next(err); }
 };
 
@@ -70,17 +76,18 @@ export const registerMember = async (req, res, next) => {
 export const requestOtp = async (req, res, next) => {
     try {
         const { identifier } = req.body;
-        const member = await MemberModel.findByPhone(identifier) || await MemberModel.findByEmail(identifier);
+        const normalizedIdentifier = normalizeIdentifier(identifier);
+        const member = await MemberModel.findByPhone(normalizedIdentifier) || await MemberModel.findByEmail(normalizedIdentifier);
         if (!member) return res.status(404).json({ error: 'Pengguna tidak ditemukan' });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 10 * 60 * 1000;
-        otpStore.set(identifier, { otp, expiresAt });
+        otpStore.set(normalizedIdentifier, { otp, expiresAt });
 
         // Kirim via WhatsApp
         const sent = await sendOTP(member.phone, otp);
         if (!sent) {
-            console.log(`[OTP] Fallback untuk ${identifier}: ${otp}`);
+            console.log(`[OTP] Fallback untuk ${normalizedIdentifier}: ${otp}`);
         }
         // res.json({ success: true, message: 'Kode OTP dikirim via WhatsApp' });
         res.json({ success: true, message: 'Kode OTP dikirim', otp });
@@ -90,17 +97,18 @@ export const requestOtp = async (req, res, next) => {
 export const verifyOtp = async (req, res, next) => {
     try {
         const { identifier, otp } = req.body;
+        const normalizedIdentifier = normalizeIdentifier(identifier);
 
         if (process.env.USE_DUMMY_OTP === 'true' && otp === process.env.DUMMY_OTP_CODE) {
-            console.log(`[OTP] Mode DUMMY: Verifikasi OTP berhasil untuk ${identifier} dengan kode tetap.`);
+            console.log(`[OTP] Mode DUMMY: Verifikasi OTP berhasil untuk ${normalizedIdentifier} dengan kode tetap.`);
             return res.json({ success: true, message: 'OTP valid' });
         }
 
-        const stored = otpStore.get(identifier);
+        const stored = otpStore.get(normalizedIdentifier);
         if (!stored || stored.otp !== otp || stored.expiresAt < Date.now()) {
             return res.status(400).json({ error: 'OTP tidak valid atau kadaluarsa' });
         }
-        otpStore.delete(identifier);
+        otpStore.delete(normalizedIdentifier);
         res.json({ success: true, message: 'OTP valid' });
     } catch (err) { next(err); }
 };
@@ -108,8 +116,9 @@ export const verifyOtp = async (req, res, next) => {
 export const mobileLogin = async (req, res, next) => {
     try {
         const { identifier, pin } = req.body;
-        let member = await MemberModel.findByEmail(identifier);
-        if (!member) member = await MemberModel.findByPhone(identifier);
+        const normalizedIdentifier = normalizeIdentifier(identifier);
+        let member = await MemberModel.findByEmail(normalizedIdentifier);
+        if (!member) member = await MemberModel.findByPhone(normalizedIdentifier);
         if (!member) return res.status(401).json({ error: 'Akun tidak ditemukan' });
         const isValid = await verifyPin(pin, member.pin);
         if (!isValid) return res.status(401).json({ error: 'PIN salah' });
@@ -119,24 +128,25 @@ export const mobileLogin = async (req, res, next) => {
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );
-        res.json({ success: true, token, user: { id: member.id, name: member.full_name, phone: member.phone, email: member.email } });
+        res.json({ success: true, token, user: { id: member.id, name: member.full_name, phone: member.phone, email: member.email, status: member.status } });
     } catch (err) { next(err); }
 };
 
 export const mobileResetPin = async (req, res, next) => {
     try {
         const { identifier, otp, newPin } = req.body;
-        const stored = otpStore.get(identifier);
+        const normalizedIdentifier = normalizeIdentifier(identifier);
+        const stored = otpStore.get(normalizedIdentifier);
         if (!stored || stored.otp !== otp || stored.expiresAt < Date.now()) {
             return res.status(400).json({ error: 'OTP tidak valid' });
         }
-        let member = await MemberModel.findByEmail(identifier);
-        if (!member) member = await MemberModel.findByPhone(identifier);
+        let member = await MemberModel.findByEmail(normalizedIdentifier);
+        if (!member) member = await MemberModel.findByPhone(normalizedIdentifier);
         if (!member) return res.status(404).json({ error: 'Akun tidak ditemukan' });
         if (!/^\d{6}$/.test(newPin)) return res.status(400).json({ error: 'PIN harus 6 digit' });
         const hashedPin = await hashPin(newPin);
         await MemberModel.updatePin(member.id, hashedPin);
-        otpStore.delete(identifier);
+        otpStore.delete(normalizedIdentifier);
         res.json({ success: true, message: 'PIN berhasil direset' });
     } catch (err) { next(err); }
 };

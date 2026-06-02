@@ -1,5 +1,6 @@
 // backend/src/models/MemberModel.js
 import pool from '../config/database.js';
+import { normalizePhone } from '../utils/validators.js';
 
 export const findAll = async (limit, offset, search = '', role = null) => {
   let query = 'SELECT id, full_name, nik, phone, status, balance, role, created_at FROM members';
@@ -11,8 +12,17 @@ export const findAll = async (limit, offset, search = '', role = null) => {
 
   if (search) {
     conditions.push('(full_name LIKE ? OR nik LIKE ? OR phone LIKE ?)');
+    let phoneSearch = search;
+    const cleanSearch = search.trim();
+    if (/^[+0-9\s-]+$/.test(cleanSearch)) {
+      const normalized = normalizePhone(cleanSearch);
+      if (normalized) {
+        phoneSearch = normalized;
+      }
+    }
     const like = `%${search}%`;
-    params.push(like, like, like);
+    const phoneLike = `%${phoneSearch}%`;
+    params.push(like, like, phoneLike);
   }
   if (role && role !== 'ALL') {
     conditions.push('role = ?');
@@ -45,7 +55,10 @@ export const findById = async (id) => {
 export const update = async (id, data) => {
     const fields = [];
     const values = [];
-    for (const [key, value] of Object.entries(data)) {
+    for (let [key, value] of Object.entries(data)) {
+        if (key === 'phone' && value) {
+            value = normalizePhone(value);
+        }
         fields.push(`${key} = ?`);
         values.push(value);
     }
@@ -72,7 +85,8 @@ export const findByEmail = async (email) => {
 };
 
 export const findByPhone = async (phone) => {
-  const [rows] = await pool.query('SELECT * FROM members WHERE phone = ?', [phone]);
+  const normalized = normalizePhone(phone);
+  const [rows] = await pool.query('SELECT * FROM members WHERE phone = ?', [normalized]);
   return rows[0];
 };
 
@@ -90,6 +104,8 @@ export const createMember = async (memberData) => {
     employed_days, last_phone_change_days
   } = memberData;
 
+  const normalizedPhone = normalizePhone(phone);
+
   const [result] = await pool.query(
     `INSERT INTO members (
       full_name, nik, phone, email, pin, status, role,
@@ -99,7 +115,7 @@ export const createMember = async (memberData) => {
       employed_days, last_phone_change_days
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      fullName, nik, phone, email, pin, status, role || 'member',
+      fullName, nik, normalizedPhone, email, pin, status, role || 'member',
       monthly_income || 0, tenure_months || 0, existing_loan_balance || 0, has_collateral || false,
       code_gender || 'M', birth_date || null, education || 'Secondary / secondary special',
       family_status || 'Single', income_type || 'Working', occupation || 'Laborers',

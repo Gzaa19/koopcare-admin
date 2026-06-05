@@ -13,7 +13,7 @@ import {
 
 // Navigasi disesuaikan dengan teks di wireframe dan penambahan menu Anggota
 const navigation = [
-  { name: 'Halaman Utama', tooltip: 'Dashboard', href: '/', icon: HomeIcon },
+  { name: 'Halaman Utama', tooltip: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Anggota', tooltip: 'Members', href: '/members', icon: UserGroupIcon }, // Dikembalikan
   { name: 'KYC Verifikasi', tooltip: 'KYC Verification', href: '/kyc', icon: UserIcon },
   { name: 'Manajemen Pinjaman', tooltip: 'Loan Management', href: '/loans', icon: WalletIcon },

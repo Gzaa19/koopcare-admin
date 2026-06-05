@@ -11,6 +11,7 @@ import LedgerPage from './features/ledger/LedgerPage';
 import useAuthStore from './store/authStore';
 import RegisterPage from './features/auth/RegisterPage';
 import InviteCodeManagementPage from './features/admin/InviteCodeManagementPage';
+import LandingPage from './features/landing/LandingPage';
 
 // Sementara bypass auth agar bisa lihat tampilan (backend belum siap)
 const PrivateRoute = ({ children }) => {
@@ -24,16 +25,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<DashboardPage />} />
-          <Route path="members" element={<MemberListPage />} />
-          <Route path="kyc" element={<KycListPage />} />
-          <Route path="loans" element={<LoanListPage />} />
-          <Route path="cashier" element={<CashierPage />} />
-          <Route path="ledger" element={<LedgerPage />} />
-          <Route path="admin/invite-codes" element={<InviteCodeManagementPage />} />
+        <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/members" element={<MemberListPage />} />
+          <Route path="/kyc" element={<KycListPage />} />
+          <Route path="/loans" element={<LoanListPage />} />
+          <Route path="/cashier" element={<CashierPage />} />
+          <Route path="/ledger" element={<LedgerPage />} />
+          <Route path="/admin/invite-codes" element={<InviteCodeManagementPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

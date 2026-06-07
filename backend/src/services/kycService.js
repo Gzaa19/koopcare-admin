@@ -30,5 +30,7 @@ export const rejectKycSubmission = async (id, reviewerId, notes) => {
   if (!submission) throw new Error('Pengajuan tidak ditemukan');
   
   await kycModel.updateStatus(id, 'REJECTED', reviewerId, notes || 'Ditolak oleh admin');
+  // Update status member menjadi INACTIVE
+  await pool.query('UPDATE members SET status = "INACTIVE" WHERE id = ?', [submission.member_id]);
   return true;
 };

@@ -14,14 +14,8 @@ function buildPayload(member, loan) {
     }
     const amt_annuity = loan.amount / loan.tenor;
     return {
-        tenure_months: member.tenure_months || 0,
-        monthly_income: member.monthly_income || 0,
-        loan_amount: loan.amount,
-        loan_purpose: loan.purpose || 'others',
-        existing_loan_balance: member.existing_loan_balance || 0,
-        has_collateral: member.has_collateral ? 1 : 0,
         code_gender: member.code_gender || 'M',
-        name_income_type: 'Working',
+        name_income_type: member.income_type || 'Working',
         name_education_type: member.education || 'Secondary / secondary special',
         name_family_status: member.family_status || 'Married',
         occupation_type: member.occupation || 'Laborers',
@@ -36,6 +30,9 @@ function buildPayload(member, loan) {
         days_birth: days_birth,
         days_employed: member.employed_days || -1825,
         days_last_phone_change: member.last_phone_change_days || -180,
+        ext_source_1: 0.5,
+        ext_source_2: 0.5,
+        ext_source_3: 0.5
     };
 }
 
@@ -57,7 +54,24 @@ export async function scoreLoanApplication(memberId, loanData) {
 
         if (prob_default === undefined) throw new Error('ML response missing prob_default');
 
-        const ai_score = Math.round((1 - prob_default) * 100);
+        // ── Skor 3 zona ──────────────────────────────────────────────────
+        // ✅ LAYAK            (prob_default < 0.666)  → skor 75 — 100
+        // ⚠️  DIPERTIMBANGKAN (0.666 ≤ prob < 0.866) → skor 25 — 74
+        // ❌ TIDAK LAYAK      (prob_default ≥ 0.866)  → skor  0 — 24
+        const prob_berhasil = 1 - prob_default;
+        let ai_score;
+
+        if (prob_default < 0.666) {
+            // LAYAK: skor = 50 + (prob_berhasil * 50)
+            ai_score = Math.round(50 + prob_berhasil * 50);
+        } else if (prob_default < 0.866) {
+            // PERLU DIPERTIMBANGKAN: skor = 25 + (prob_berhasil * 25)
+            ai_score = Math.round(25 + prob_berhasil * 25);
+        } else {
+            // TIDAK LAYAK: skor = prob_berhasil * 25
+            ai_score = Math.round(prob_berhasil * 25);
+        }
+        
         return { recommendation, prob_default, ai_score, risk_level };
     } catch (error) {
         console.error('[ML] Error calling ML API:', error.message);

@@ -107,7 +107,19 @@ export const calculateEligibilityScore = (probDefault) => {
     throw new InvalidMlProbabilityError(probDefault);
   }
 
-  return Math.round((1 - parsedProbDefault) * 100);
+  // ── Skor 3 zona (konsisten dengan loanMlScoringService) ──────────
+  // ✅ LAYAK            (prob_default < 0.666)  → skor 75 — 100
+  // ⚠️  DIPERTIMBANGKAN (0.666 ≤ prob < 0.866) → skor 25 — 74
+  // ❌ TIDAK LAYAK      (prob_default ≥ 0.866)  → skor  0 — 24
+  const probBerhasil = 1 - parsedProbDefault;
+
+  if (parsedProbDefault < 0.666) {
+    return Math.round(50 + probBerhasil * 50);
+  } else if (parsedProbDefault < 0.866) {
+    return Math.round(25 + probBerhasil * 25);
+  } else {
+    return Math.round(probBerhasil * 25);
+  }
 };
 
 export const mapPredictionToLoanAiAssessment = (prediction) => {

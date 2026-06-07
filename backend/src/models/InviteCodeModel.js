@@ -36,3 +36,21 @@ export const updateValidity = async (id, validUntil) => {
 export const revoke = async (id) => {
     await pool.query('UPDATE invite_codes SET status = "expired" WHERE id = ?', [id]);
 };
+
+export const findByCode = async (code) => {
+    const [rows] = await pool.query('SELECT * FROM invite_codes WHERE code = ?', [code]);
+    return rows[0];
+};
+
+export const deactivateExpired = async () => {
+    await pool.query(
+        'UPDATE invite_codes SET status = "expired" WHERE valid_until < NOW() AND status = "active"'
+    );
+};
+
+export const incrementUsed = async (id) => {
+    await pool.query(
+        'UPDATE invite_codes SET used_count = used_count + 1 WHERE id = ?',
+        [id]
+    );
+};

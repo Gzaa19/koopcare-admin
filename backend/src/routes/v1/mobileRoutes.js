@@ -36,5 +36,7 @@ router.get('/notifications', mobileController.getNotifications);
 router.get('/notifications/unread-count', mobileController.getUnreadNotificationCount);
 router.patch('/notifications/:id/read', mobileController.markNotificationRead);
 router.patch('/notifications/read-all', mobileController.markAllNotificationsRead);
+router.post('/topup', mobileController.createTopup);
+router.get('/topup/:order_id/status', mobileController.getTopupStatus);
 
 export default router;

@@ -250,6 +250,24 @@ export async function runMigrations() {
     `);
     await connection.query(`INSERT INTO _migrations (filename) VALUES ('013')`);
   }
+  
+    // 014 - pending_topups
+  if (!done.has('014')) {
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pending_topups (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        member_id INT NOT NULL,
+        order_id VARCHAR(50) UNIQUE NOT NULL,
+        amount DECIMAL(15,2) NOT NULL,
+        status ENUM('PENDING','SETTLED','FAILED','EXPIRED') DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+        INDEX idx_order (order_id), INDEX idx_member (member_id), INDEX idx_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await connection.query(`INSERT INTO _migrations (filename) VALUES ('014')`);
+  }
 
   await connection.end();
 }

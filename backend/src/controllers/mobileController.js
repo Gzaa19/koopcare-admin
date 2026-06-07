@@ -335,3 +335,5 @@ export const markAllNotificationsRead = async (req, res, next) => {
         res.json({ success: true });
     } catch (err) { next(err); }
 };
+
+export { createTopup, getTopupStatus } from './paymentController.js';

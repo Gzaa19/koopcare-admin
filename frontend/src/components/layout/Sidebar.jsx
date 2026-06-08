@@ -44,22 +44,13 @@ const Sidebar = ({ onLogout }) => {
         onClick={toggleSidebar}
         title={isCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
       >
-        {/* Logo Kuning/Gold */}
-        <div className="w-10 h-10 bg-[#EDBF5D] rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-          <svg
-            className="w-5 h-5 text-white"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {/* Bentuk menyerupai ikon di wireframe */}
-            <path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
-            <path d="M12 4v16" />
-          </svg>
-        </div>
+        {/* Logo Image */}
+        <img
+          src="/images/koopcare.png"
+          alt="KoopCare Logo"
+          className="w-12 h-12 object-contain flex-shrink-0"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
 
         {!isCollapsed && (
           <div className="flex flex-col whitespace-nowrap overflow-hidden">

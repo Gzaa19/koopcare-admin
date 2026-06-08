@@ -9,6 +9,10 @@ import { hashPin, verifyPin, generateRandomPin } from '../services/pinService.js
 import { scoreLoanApplication } from '../services/loanMlScoringService.js';
 import jwt from 'jsonwebtoken';
 import { normalizePhone, normalizeIdentifier, validatePhone } from '../utils/validators.js';
+import * as InstallmentModel from '../models/InstallmentModel.js';
+import * as transactionService from '../services/transactionService.js';
+import pool from '../config/database.js';
+
 
 // Helper untuk OTP sederhana (simulasi, bisa diganti dengan WhatsApp)
 const otpStore = new Map();
@@ -336,4 +340,72 @@ export const markAllNotificationsRead = async (req, res, next) => {
     } catch (err) { next(err); }
 };
 
+// GET /mobile/loans/:id/installments
+export const getLoanInstallments = async (req, res, next) => {
+    try {
+        const loan = await LoanModel.findById(req.params.id);
+        if (!loan || loan.member_id !== req.user.id) {
+            return res.status(404).json({ error: 'Pinjaman tidak ditemukan' });
+        }
+        const installments = await InstallmentModel.findByLoanId(req.params.id);
+        res.json({ success: true, data: installments });
+    } catch (err) { next(err); }
+};
+
+// POST /mobile/loans/:loanId/installments/:installmentId/pay-balance
+export const payInstallmentFromBalance = async (req, res, next) => {
+    try {
+        const { loanId, installmentId } = req.params;
+
+        // 1. Ownership + existence
+        const loan = await LoanModel.findById(loanId);
+        if (!loan || loan.member_id !== req.user.id) {
+            return res.status(404).json({ error: 'Pinjaman tidak ditemukan' });
+        }
+        const installment = await InstallmentModel.findById(installmentId);
+        if (!installment || installment.loan_id !== Number(loanId)) {
+            return res.status(404).json({ error: 'Cicilan tidak ditemukan' });
+        }
+        if (installment.status === 'PAID') {
+            return res.status(400).json({ error: 'Cicilan ini sudah dibayar' });
+        }
+
+        // 2. Sequential rule — must be the next unpaid installment
+        const next = await InstallmentModel.findNextUnpaid(loanId);
+        if (!next || next.id !== installment.id) {
+            return res.status(400).json({
+                error: 'Harap bayar cicilan sebelumnya terlebih dahulu',
+            });
+        }
+
+        // 3. Debit balance via the existing transaction service (it checks
+        //    sufficient balance and throws 'Saldo tidak mencukupi' if not).
+        //    recordTransaction with BAYAR_ANGSURAN already debits members.balance.
+        const transactionId = await transactionService.recordTransaction({
+            member_id: req.user.id,
+            type: 'BAYAR_ANGSURAN',
+            amount: Number(installment.amount),
+            description: `Pembayaran cicilan #${installment.installment_number} (${loan.request_number})`,
+            reference_id: String(loanId),
+            cashier_id: null,
+        });
+
+        // 4. Mark installment paid, linked to that ledger row.
+        await InstallmentModel.markPaid(installment.id, transactionId);
+
+        // 5. If that was the last installment, mark loan PAID_OFF.
+        const remaining = await InstallmentModel.findNextUnpaid(loanId);
+        if (!remaining) {
+            await pool.query(`UPDATE loans SET status = 'PAID_OFF' WHERE id = ?`, [loanId]);
+        }
+
+        res.json({ success: true, message: 'Cicilan berhasil dibayar', transactionId });
+    } catch (err) {
+        // recordTransaction throws 'Saldo tidak mencukupi' — surface as 400
+        if (err.message?.includes('Saldo tidak mencukupi')) {
+            return res.status(400).json({ error: 'Saldo tidak mencukupi' });
+        }
+        next(err);
+    }
+};
 export { createTopup, getTopupStatus } from './paymentController.js';

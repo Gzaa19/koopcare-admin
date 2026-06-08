@@ -42,7 +42,7 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white text-neutral-800 font-body relative select-none">
       
       {/* Header/Navbar */}
-      <header className="relative z-50 bg-white/75 backdrop-blur-md border-b border-neutral-100/80">
+      <header className="sticky top-0 z-50 bg-white/75 backdrop-blur-md border-b border-neutral-100/80">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
           
           {/* Logo Section */}

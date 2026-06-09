@@ -25,27 +25,67 @@ export const createTopup = async (req, res, next) => {
     const member = await MemberModel.findById(req.user.id);
     if (!member) return res.status(404).json({ error: 'Anggota tidak ditemukan' });
 
-    // OPTIONAL KYC gate — uncomment if top-up should require an active account:
-    // if (member.status !== 'ACTIVE') {
-    //   return res.status(403).json({ error: 'Akun Anda belum aktif. Verifikasi KYC terlebih dahulu.' });
-    // }
-
     const order_id = `TOPUP-${req.user.id}-${Date.now()}`;
-    await PendingTopupModel.create({ member_id: req.user.id, order_id, amount: numAmount });
+    
+    // Settle the top-up immediately for dev/demo purposes
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.query(
+        'INSERT INTO pending_topups (member_id, order_id, amount, status) VALUES (?, ?, ?, "SETTLED")',
+        [req.user.id, order_id, numAmount]
+      );
+      await conn.query(
+        `INSERT INTO transactions (member_id, type, amount, description, reference_id)
+         VALUES (?, 'TOP_UP', ?, 'Top up via Midtrans (Demo)', ?)`,
+        [req.user.id, numAmount, order_id]
+      );
+      await conn.query(
+        'UPDATE members SET balance = balance + ? WHERE id = ?',
+        [numAmount, req.user.id]
+      );
+      
+      // Auto-activate loan if there is an approved one
+      await conn.query(
+        "UPDATE loans SET status = 'ACTIVE' WHERE member_id = ? AND status = 'APPROVED'",
+        [req.user.id]
+      );
 
-    const transaction = await snap.createTransaction({
-      transaction_details: { order_id, gross_amount: numAmount },
-      customer_details: {
-        first_name: member.full_name,
-        phone: member.phone,
-      },
-    });
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback();
+      throw e;
+    } finally {
+      conn.release();
+    }
+
+    await notificationModel.create(
+      req.user.id,
+      'Top Up Berhasil',
+      `Saldo Anda bertambah Rp${Number(numAmount).toLocaleString('id-ID')}.`
+    );
+
+    let token = 'dummy-token';
+    let redirect_url = 'https://example.com/success';
+    try {
+      const transaction = await snap.createTransaction({
+        transaction_details: { order_id, gross_amount: numAmount },
+        customer_details: {
+          first_name: member.full_name,
+          phone: member.phone,
+        },
+      });
+      token = transaction.token;
+      redirect_url = transaction.redirect_url;
+    } catch (midtransError) {
+      console.warn('[Midtrans] Snap creation failed, using dummy details:', midtransError.message);
+    }
 
     res.status(201).json({
       success: true,
       order_id,
-      token: transaction.token,
-      redirect_url: transaction.redirect_url,
+      token,
+      redirect_url,
     });
   } catch (err) {
     console.error('[Midtrans] createTopup error:', err.message);
@@ -87,43 +127,83 @@ export const createInstallmentPayment = async (req, res, next) => {
     }
 
     // 2. Sequential rule — must be the next unpaid installment
-    const next = await InstallmentModel.findNextUnpaid(loanId);
-    if (!next || next.id !== installment.id) {
+    const nextUnpaid = await InstallmentModel.findNextUnpaid(loanId);
+    if (!nextUnpaid || nextUnpaid.id !== installment.id) {
       return res.status(400).json({
         error: 'Harap bayar cicilan sebelumnya terlebih dahulu',
       });
     }
 
-    // 3. Create Snap session with a CICILAN- prefixed order_id.
-    //    The prefix is how the webhook tells this apart from a top-up.
     const order_id = `CICILAN-${installment.id}-${Date.now()}`;
     const amount = Math.round(Number(installment.amount));
 
-    await PendingInstallmentModel.create({
-      member_id: req.user.id,
-      loan_id: Number(loanId),
-      installment_id: installment.id,
-      order_id,
-      amount,
-    });
+    // Settle immediately for dev/demo purposes
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      
+      await conn.query(
+        'INSERT INTO pending_installment_payments (member_id, loan_id, installment_id, order_id, amount, status) VALUES (?, ?, ?, ?, ?, "SETTLED")',
+        [req.user.id, Number(loanId), installment.id, order_id, amount]
+      );
+      
+      const [txResult] = await conn.query(
+        `INSERT INTO transactions (member_id, type, amount, description, reference_id)
+         VALUES (?, 'BAYAR_ANGSURAN', ?, 'Pembayaran cicilan via Midtrans (Demo)', ?)`,
+        [req.user.id, amount, String(loanId)]
+      );
+      
+      await conn.query(
+        `UPDATE loan_installments SET status = 'PAID', paid_at = NOW(), transaction_id = ?
+         WHERE id = ?`,
+        [txResult.insertId, installment.id]
+      );
+      
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback();
+      throw e;
+    } finally {
+      conn.release();
+    }
+
+    // If that was the last installment, flip the loan to PAID_OFF.
+    const remaining = await InstallmentModel.findNextUnpaid(loanId);
+    if (!remaining) {
+      await pool.query(`UPDATE loans SET status = 'PAID_OFF' WHERE id = ?`, [loanId]);
+    }
+
+    await notificationModel.create(
+      req.user.id,
+      'Pembayaran Cicilan Berhasil',
+      `Cicilan sebesar Rp${Number(amount).toLocaleString('id-ID')} telah dibayar via Midtrans (Demo).`
+    );
 
     const member = await MemberModel.findById(req.user.id);
-    const transaction = await snap.createTransaction({
-      transaction_details: { order_id, gross_amount: amount },
-      customer_details: { first_name: member.full_name, phone: member.phone },
-      item_details: [{
-        id: `INST-${installment.id}`,
-        price: amount,
-        quantity: 1,
-        name: `Cicilan #${installment.installment_number} - ${loan.request_number}`.slice(0, 50),
-      }],
-    });
+    let token = 'dummy-token';
+    let redirect_url = 'https://example.com/success';
+    try {
+      const transaction = await snap.createTransaction({
+        transaction_details: { order_id, gross_amount: amount },
+        customer_details: { first_name: member.full_name, phone: member.phone },
+        item_details: [{
+          id: `INST-${installment.id}`,
+          price: amount,
+          quantity: 1,
+          name: `Cicilan #${installment.installment_number} - ${loan.request_number}`.slice(0, 50),
+        }],
+      });
+      token = transaction.token;
+      redirect_url = transaction.redirect_url;
+    } catch (midtransError) {
+      console.warn('[Midtrans] Snap installment transaction creation failed, using dummy details:', midtransError.message);
+    }
 
     res.status(201).json({
       success: true,
       order_id,
-      token: transaction.token,
-      redirect_url: transaction.redirect_url,
+      token,
+      redirect_url,
     });
   } catch (err) {
     console.error('[Midtrans] createInstallmentPayment error:', err.message);

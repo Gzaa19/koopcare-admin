@@ -48,5 +48,6 @@ router.get('/loans/:id/installments', mobileController.getLoanInstallments);
 router.post('/loans/:loanId/installments/:installmentId/pay-balance', mobileController.payInstallmentFromBalance);
 router.post('/loans/:loanId/installments/:installmentId/pay-midtrans',createInstallmentPayment);
 router.get('/loans/:loanId/installments/:installmentId/payment-status',getInstallmentPaymentStatus);
+router.post('/transfer', mobileController.executeTransfer);
 
 export default router;

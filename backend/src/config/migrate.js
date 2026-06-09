@@ -327,5 +327,14 @@ export async function runMigrations() {
     await connection.query(`INSERT INTO _migrations (filename) VALUES ('018')`);
   }
   
+  // 019 - add TRANSFER to transactions type ENUM
+  if (!done.has('019')) {
+    await connection.query(`
+      ALTER TABLE transactions 
+      MODIFY COLUMN type ENUM('SETORAN_WAJIB','TARIK_TUNAI','BAYAR_ANGSURAN','TOP_UP','PENARIKAN_SALDO','TRANSFER') NOT NULL
+    `);
+    await connection.query(`INSERT INTO _migrations (filename) VALUES ('019')`);
+  }
+
   await connection.end();
 }

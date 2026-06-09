@@ -408,4 +408,40 @@ export const payInstallmentFromBalance = async (req, res, next) => {
         next(err);
     }
 };
+
+export const executeTransfer = async (req, res, next) => {
+    try {
+        const { amount, bank, rekening } = req.body;
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ error: 'Nominal transfer harus lebih dari 0' });
+        }
+        if (!bank) {
+            return res.status(400).json({ error: 'Bank tujuan harus diisi' });
+        }
+        if (!rekening) {
+            return res.status(400).json({ error: 'Nomor rekening tujuan harus diisi' });
+        }
+
+        const transactionId = await transactionService.recordTransaction({
+            member_id: req.user.id,
+            type: 'TRANSFER',
+            amount: Number(amount),
+            description: `Transfer ke ${bank} - ${rekening}`,
+            reference_id: null,
+            cashier_id: null,
+        });
+
+        res.json({
+            success: true,
+            message: 'Transfer berhasil',
+            transactionId
+        });
+    } catch (err) {
+        if (err.message?.includes('Saldo tidak mencukupi')) {
+            return res.status(400).json({ error: 'Saldo tidak mencukupi' });
+        }
+        next(err);
+    }
+};
+
 export { createTopup, getTopupStatus } from './paymentController.js';

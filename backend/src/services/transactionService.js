@@ -13,7 +13,7 @@ export const recordTransaction = async (transactionData) => {
 
   // Definisikan tipe dengan eksplisit
   const CREDIT_TYPES = ['SETORAN_WAJIB', 'TOP_UP'];
-  const DEBIT_TYPES = ['TARIK_TUNAI', 'BAYAR_ANGSURAN', 'PENARIKAN_SALDO'];
+  const DEBIT_TYPES = ['TARIK_TUNAI', 'BAYAR_ANGSURAN', 'PENARIKAN_SALDO', 'TRANSFER'];
 
   const isCredit = CREDIT_TYPES.includes(type);
   const isDebit = DEBIT_TYPES.includes(type);

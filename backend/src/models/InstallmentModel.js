@@ -5,7 +5,8 @@ import pool from '../config/database.js';
 export const generateForLoan = async ({ loanId, amount, tenor, startDate }) => {
   if (!tenor || tenor <= 0 || !amount || amount <= 0) return;
 
-  const monthly = Math.round((Number(amount) / tenor) * 100) / 100;
+  const totalAmount = Math.round(Number(amount));
+  const baseMonthly = Math.round(totalAmount / tenor);
   const base = startDate ? new Date(startDate) : new Date();
 
   const values = [];
@@ -14,8 +15,14 @@ export const generateForLoan = async ({ loanId, amount, tenor, startDate }) => {
     const due = new Date(base);
     due.setDate(due.getDate() + 30 * n); // 30-day cadence, matching the UI
     const dueStr = due.toISOString().slice(0, 10); // YYYY-MM-DD
+    
+    // Adjust the last installment to ensure the sum equals the exact loan amount
+    const installmentAmount = n === tenor
+      ? totalAmount - (baseMonthly * (tenor - 1))
+      : baseMonthly;
+
     placeholders.push('(?, ?, ?, ?)');
-    values.push(loanId, n, monthly, dueStr);
+    values.push(loanId, n, installmentAmount, dueStr);
   }
 
   await pool.query(

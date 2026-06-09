@@ -107,6 +107,11 @@ const LoanReviewModal = ({ isOpen, onClose, loanId, onApprove, onReject }) => {
                           </span>
                       )}
                   </div>
+                  {loan.max_approved_amount !== undefined && loan.max_approved_amount !== null && (
+                      <div className="text-xs font-semibold mt-1">
+                          Limit Maksimum Rekomendasi AI: {formatCurrency(loan.max_approved_amount)}
+                      </div>
+                  )}
                   <p className="text-xs opacity-75 mt-1">*Keputusan akhir tetap di tangan admin.</p>
               </div>
           )}

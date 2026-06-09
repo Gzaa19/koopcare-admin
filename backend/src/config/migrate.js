@@ -310,6 +310,22 @@ export async function runMigrations() {
     `);
     await connection.query(`INSERT INTO _migrations (filename) VALUES ('016')`);
   }
+
+  // 017 - alter ai_recommendation ENUM to support PERLU_DIPERTIMBANGKAN
+  if (!done.has('017')) {
+    await connection.query(`
+      ALTER TABLE loans 
+      MODIFY COLUMN ai_recommendation ENUM('LAYAK', 'TIDAK_LAYAK', 'PERLU_DIPERTIMBANGKAN') NULL
+    `);
+    await connection.query(`INSERT INTO _migrations (filename) VALUES ('017')`);
+  }
+
+  // 018 - add vehicle_type and property_type to members table
+  if (!done.has('018')) {
+    await addCol(connection, 'members', 'vehicle_type', `VARCHAR(50) NULL`);
+    await addCol(connection, 'members', 'property_type', `VARCHAR(50) NULL`);
+    await connection.query(`INSERT INTO _migrations (filename) VALUES ('018')`);
+  }
   
   await connection.end();
 }

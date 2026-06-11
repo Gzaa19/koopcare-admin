@@ -252,8 +252,47 @@ export const getMemberLoans = async (req, res, next) => {
 
 export const applyLoan = async (req, res, next) => {
     try {
-        const { amount, tenor, purpose, type } = req.body;
-        
+        let { amount, tenor, purpose, type } = req.body;
+
+        // ── Sanitasi & Validasi amount ───────────────────────────────
+        // Strip karakter non-numerik (titik/koma pemisah ribuan) lalu parse
+        const rawAmount = String(amount ?? '').replace(/[^0-9]/g, '');
+        const numAmount = parseInt(rawAmount, 10);
+
+        if (!rawAmount || isNaN(numAmount) || numAmount <= 0) {
+            return res.status(400).json({ error: 'Jumlah pembiayaan tidak valid.' });
+        }
+        if (numAmount < 100000) {
+            return res.status(400).json({ error: 'Jumlah pembiayaan minimal Rp 100.000.' });
+        }
+        if (numAmount > 500000000) {
+            return res.status(400).json({ error: 'Jumlah pembiayaan maksimal Rp 500.000.000.' });
+        }
+        amount = numAmount; // gunakan nilai bersih
+
+        // ── Sanitasi tenor ───────────────────────────────────────────
+        const numTenor = parseInt(tenor, 10);
+        if (isNaN(numTenor) || numTenor <= 0) {
+            return res.status(400).json({ error: 'Tenor tidak valid.' });
+        }
+        tenor = numTenor;
+
+        // ── Sanitasi purpose ────────────────────────────────────────
+        purpose = String(purpose ?? '').trim();
+        if (!purpose || purpose.length < 3) {
+            return res.status(400).json({ error: 'Tujuan pembiayaan harus diisi (min. 3 karakter).' });
+        }
+        if (purpose.length > 255) {
+            return res.status(400).json({ error: 'Tujuan pembiayaan terlalu panjang.' });
+        }
+
+        // ── Sanitasi type ────────────────────────────────────────────
+        const validTypes = ['MURABAHAH', 'QARDHUL_HASAN'];
+        type = String(type ?? '').trim().toUpperCase();
+        if (!validTypes.includes(type)) {
+            return res.status(400).json({ error: 'Jenis produk pembiayaan tidak valid.' });
+        }
+
         // Cek status keaktifan anggota
         const member = await MemberModel.findById(req.user.id);
         if (!member) {
@@ -263,7 +302,7 @@ export const applyLoan = async (req, res, next) => {
             return res.status(403).json({ error: 'Akun Anda belum aktif. Harap verifikasi KYC terlebih dahulu.' });
         }
 
-        const request_number = `LOAN${Date.now()}`;
+        const request_number = `K${Date.now()}`;
         const loanId = await LoanModel.create({
             member_id: req.user.id,
             request_number,
@@ -286,7 +325,8 @@ export const applyLoan = async (req, res, next) => {
                     max_approved_amount,
                 });
                 // Tambahkan notifikasi AI selesai
-                await notificationModel.create(req.user.id, 'Analisis AI Selesai', `Pengajuan pinjaman Anda telah dianalisis. Skor kelayakan: ${ai_score} (${recommendation})`);
+                const formattedAmount = `Rp${Number(amount).toLocaleString('id-ID')}`;
+                await notificationModel.create(req.user.id, 'Analisis AI Selesai', `Pengajuan pinjaman ${formattedAmount} Anda telah dianalisis. Skor kelayakan: ${ai_score} (${recommendation})`);
                 console.log(`[AI] Loan ${loanId} updated with ML result.`);
             })
             .catch(err => console.error('[AI] Background error:', err));

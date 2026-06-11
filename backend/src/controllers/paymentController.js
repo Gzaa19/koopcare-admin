@@ -83,6 +83,7 @@ export const createTopup = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      immediately_settled: true,
       order_id,
       token,
       redirect_url,

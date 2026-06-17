@@ -175,8 +175,17 @@ const LoanReviewModal = ({ isOpen, onClose, loanId, onApprove, onReject }) => {
               )}
             </div>
           ) : (
-            <div className={`p-3 rounded-lg text-center text-sm font-medium ${loan.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {loan.status === 'APPROVED' ? '✓ Disetujui' : '✗ Ditolak'}
+            <div className={`p-3 rounded-lg text-center text-sm font-medium ${['APPROVED', 'ACTIVE', 'PAID_OFF', 'DEFAULTED'].includes(loan.status) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {['APPROVED', 'ACTIVE', 'PAID_OFF', 'DEFAULTED'].includes(loan.status) ? (
+                <>
+                  ✓ Disetujui
+                  {loan.status === 'ACTIVE' && <span className="ml-1.5 text-xs opacity-90">(Aktif)</span>}
+                  {loan.status === 'PAID_OFF' && <span className="ml-1.5 text-xs opacity-90">(Lunas)</span>}
+                  {loan.status === 'DEFAULTED' && <span className="ml-1.5 text-xs opacity-90">(Gagal Bayar)</span>}
+                </>
+              ) : (
+                <>✗ Ditolak</>
+              )}
               {loan.rejection_reason && <div className="text-xs mt-1 font-normal">Alasan: {loan.rejection_reason}</div>}
             </div>
           )}
